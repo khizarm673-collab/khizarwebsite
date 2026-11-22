@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><title>BCHVision · BCH Code Construction Lab</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interactive BCH code construction, encoding and error-correction dashboard.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧮</text></svg>">
+<style>
+:root{--bg:#f5f6fb;--card:#fff;--ink:#14172b;--mut:#5c6184;--line:#dfe2f0;--acc:#4f46e5;--acc2:#0ea5a4;--ok:#15803d;--bad:#c62828;--msg:#e0e7ff;--par:#ccfbf1;--err:#fecaca}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1020;--card:#161a30;--ink:#eceefc;--mut:#9aa1c9;--line:#272d4d;--acc:#8b93ff;--acc2:#2dd4bf;--ok:#4ade80;--bad:#f87171;--msg:#2a3270;--par:#0f4a4a;--err:#7f1d1d}}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+code,.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+nav{position:sticky;top:0;z-index:9;display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:10px 5vw;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav b{margin-right:auto;font-size:18px}nav b span{color:var(--acc)}nav small{display:block;color:var(--mut);font-size:11px;font-weight:400}
+nav a{color:var(--mut);text-decoration:none;padding:5px 10px;border-radius:8px;font-size:14px}nav a:hover{background:var(--card);color:var(--ink)}
+section{padding:56px 5vw;max-width:1180px;margin:auto}
+.eye{color:var(--acc);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+h1{font-size:clamp(34px,6vw,60px);line-height:1.05;margin:.2em 0}h1 em{font-style:normal;color:var(--acc)}
+h2{font-size:30px;margin:.1em 0 .2em}h3{margin:.2em 0 .5em;font-size:17px}.lead{color:var(--mut);max-width:62ch}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:16px}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.stats{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-top:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}.stat b{display:block;font-size:26px;color:var(--acc)}.stat span{font-size:12px;color:var(--mut)}
+.btn,select,input{font:inherit;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px}
+.btn{background:var(--acc);color:#fff;border:0;cursor:pointer;font-weight:600}.btn.alt{background:var(--card);color:var(--ink);border:1px solid var(--line)}.btn:hover{filter:brightness(1.1)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:8px 0}label{display:grid;gap:4px;font-size:13px;color:var(--mut)}
+.bits{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0}
+.bit{width:34px;text-align:center;border-radius:8px;padding:4px 0;font-family:ui-monospace,Menlo,monospace;border:2px solid transparent;user-select:none}
+.bit i{display:block;font-style:normal;font-size:10px;color:var(--mut)}.bit.m{background:var(--msg)}.bit.p{background:var(--par)}
+.bit.e{background:var(--err);border-color:var(--bad)}.clk{cursor:pointer}
+.chip{display:inline-block;padding:3px 12px;border-radius:99px;font-weight:600;font-size:14px}.chip.ok{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}.chip.bad{background:color-mix(in srgb,var(--bad) 20%,transparent);color:var(--bad)}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.scroll{overflow-x:auto;max-height:320px}.bar{height:14px;border-radius:7px;background:var(--acc2);opacity:.55}.bar.cur{background:var(--acc);opacity:1}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px}.kv dt{color:var(--mut)}.kv dd{margin:0;word-break:break-all}
+details{border-bottom:1px solid var(--line);padding:10px 0}summary{cursor:pointer;font-weight:600}
+.legend span{display:inline-block;padding:2px 10px;border-radius:8px;font-size:12px;margin-right:6px}
+footer{text-align:center;color:var(--mut);padding:40px 5vw}
+</style></head><body>
+<nav><b>BCH<span>Vision</span><small>Error Control Coding Lab</small></b>
+<a href="#home">Home</a><a href="#construct">Construct</a><a href="#encode">Encode</a><a href="#decode">Channel &amp; Decode</a><a href="#capability">Capability</a><a href="#tests">Tests</a><a href="#learn">Learn</a></nav>
+
+<section id="home"><div class="eye">Digital Communication · Error Control</div>
+<h1>BCH Codes,<br><em>built step by step</em></h1>
+<p class="lead">Pick m and the number of errors t you want to survive. The lab builds GF(2<sup>m</sup>), finds the minimal polynomials, multiplies out g(x), encodes your message, lets you corrupt bits, then decodes with syndromes, Berlekamp–Massey and Chien search.</p>
+<p><a class="btn" href="#construct" style="text-decoration:none;display:inline-block">Open the live lab</a> <a class="btn alt" href="#learn" style="text-decoration:none;display:inline-block">Read the theory</a></p>
+<div class="stats"><div class="stat"><b>n = 2<sup>m</sup> − 1</b><span>primitive code length</span></div><div class="stat"><b>t = ⌊(δ−1)/2⌋</b><span>guaranteed corrections</span></div><div class="stat"><b>k = n − deg g</b><span>information bits</span></div><div class="stat"><b>d<sub>min</sub> ≥ 2t+1</b><span>designed distance</span></div></div></section>
+
+<section id="construct"><div class="eye">Step 1</div><h2>Construct the code</h2><p class="lead">Narrow-sense binary BCH over GF(2<sup>m</sup>): roots α¹ … α<sup>2t</sup>, generator g(x) = product of the distinct minimal polynomials.</p>
+<div class="card"><div class="row"><label>Field size m<select id="m"><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label>
+<label>Errors to correct t<input id="t" type="number" min="1" value="2" style="width:100px"></label><span id="pp" class="mono" style="color:var(--mut)"></span></div>
+<div class="stats" id="stats"></div></div>
+<div class="grid"><div class="card"><h3>Cyclotomic cosets &amp; minimal polynomials</h3><div id="cos" class="scroll"></div></div>
+<div class="card"><h3>Generator polynomial</h3><p id="gx" class="mono"></p><p id="gbits" class="mono" style="color:var(--acc);word-break:break-all"></p><h3>Field elements α<sup>i</sup></h3><div class="scroll" id="gf"></div></div></div></section>
+
+<section id="encode"><div class="eye">Step 2</div><h2>Encode a message</h2><p class="lead">Systematic encoding: shift m(x) by x<sup>n−k</sup>, divide by g(x), append the remainder.</p>
+<div class="card"><div class="row"><label>Message bits (<span id="kk"></span> bits, leftmost = highest power)<input id="msg" class="mono" style="width:min(100%,420px)"></label><button class="btn" id="enc">Encode</button><button class="btn alt" id="rnd">Random</button></div>
+<p id="msgerr" style="color:var(--bad);margin:0"></p><dl class="kv" id="encinfo"></dl><div class="legend"><span style="background:var(--msg)">message</span><span style="background:var(--par)">parity</span></div><div class="bits" id="cwbits"></div></div></section>
+
+<section id="decode"><div class="eye">Step 3</div><h2>Corrupt the channel, then decode</h2><p class="lead">Click bits to flip them, or inject random errors. Stay within t and the decoder repairs everything; go beyond t and watch it fail or miscorrect.</p>
+<div class="card"><div class="row"><button class="btn alt" id="e0">Clear errors</button><button class="btn" id="et">Inject t errors</button><button class="btn alt" id="et1">Inject t+1 errors</button></div>
+<div class="bits" id="rxbits"></div><div id="verdict"></div><dl class="kv" id="decinfo" style="margin-top:12px"></dl></div></section>
+
+<section id="capability"><div class="eye">Step 4</div><h2>Error-correcting capability</h2><p class="lead">Every extra error you want to correct costs parity bits and lowers the code rate k/n.</p>
+<div class="grid"><div class="card"><h3>Detect &amp; correct</h3><dl class="kv" id="capinfo"></dl></div><div class="card"><h3>Rate trade-off for this m (information bits k per t)</h3><div id="trade"></div></div></div></section>
+
+<section id="tests"><div class="eye">Verification</div><h2>Test cases</h2><p class="lead">Every row runs the same engine as the lab, including the worked example from the tutorial deck.</p>
+<div class="card"><div class="row"><button class="btn" id="run">Run all tests</button><span id="tsum"></span></div><div class="scroll"><table><thead><tr><th>Scenario</th><th>Detail</th><th>Result</th></tr></thead><tbody id="tb"></tbody></table></div></div></section>
+
+<section id="learn"><div class="eye">Theory</div><h2>Questions you may be asked</h2><div class="card" id="qa"></div></section>
+<footer>BCHVision · runs entirely in your browser · no data leaves your device</footer>
+
+<script src="bch.js"></script>
+<script>
+const $=s=>document.querySelector(s),sup=n=>`<sup>${n}</sup>`;
+const pstr=b=>{const t=[];for(let i=b.length-1;i>=0;i--)if(b[i])t.push(i?(i==1?'x':'x'+sup(i)):'1');return t.join(' + ')||'0'};
+const str=a=>a.slice().reverse().join('');
+let C,cw=[],errs=new Set();
+const al=v=>v==0?'0':v==1?'1':'α'+sup(C.F.log[v]);
+const rb=n=>Array.from({length:n},()=>Math.random()<.5?1:0);
+function construct(){
+ const m=+$('#m').value,cap=BCH.capability(m),maxT=cap[cap.length-1].t;
+ $('#t').max=maxT;let t=Math.max(1,Math.min(maxT,+$('#t').value||1));$('#t').value=t;
+ C=BCH.build(m,t);const d=BCH.dmin(C);C.dm=d;
+ $('#pp').textContent='primitive p(x) = '+pstr(Array.from({length:m+1},(_,i)=>(BCH.PP[m]>>i)&1)).replace(/<\/?sup>/g,'');
+ $('#pp').innerHTML='primitive p(x) = '+pstr(Array.from({length:m+1},(_,i)=>(BCH.PP[m]>>i)&1));
+ const S=(v,l)=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`;
+ $('#stats').innerHTML=S(C.n,'n, codeword length')+S(C.k,'k, message bits')+S(C.deg,'n − k, parity bits')+S((C.k/C.n).toFixed(3),'rate k/n')+S(C.delta,'designed distance δ')+S(C.t,'t, errors corrected');
+ $('#cos').innerHTML='<table><tr><th>Coset</th><th>Minimal polynomial</th></tr>'+C.cosets.map((c,i)=>`<tr><td class="mono">{${c.join(', ')}}</td><td class="mono">${pstr(C.minpolys[i])}</td></tr>`).join('')+'</table>';
+ $('#gx').innerHTML='g(x) = '+pstr(C.g);$('#gbits').textContent='bits: '+str(C.g)+'  (degree '+C.deg+')';
+ $('#gf').innerHTML='<table><tr><th>i</th><th>α<sup>i</sup></th></tr>'+Array.from({length:C.n},(_,i)=>`<tr><td>${i}</td><td class="mono">${C.F.exp[i].toString(2).padStart(m,'0')}</td></tr>`).join('')+'</table>';
+ $('#kk').textContent=C.k;$('#msg').value=C.k==7&&m==4?'1010101':str(rb(C.k));
+ const cp=cap.map(r=>`<div class="row" style="margin:3px 0;align-items:center"><span style="width:90px">t = ${r.t}</span><div class="bar ${r.t==t?'cur':''}" style="width:${Math.max(2,r.k/r.n*60)}%"></div><span class="mono" style="font-size:12px">k = ${r.k}</span></div>`).join('');
+ $('#trade').innerHTML=cp;
+ const dd=d?`${d} (exhaustive over all ${2**C.k} codewords)`:`≥ ${C.delta} (too large to enumerate)`,dm=d||C.delta,tt=Math.floor((dm-1)/2);
+ $('#capinfo').innerHTML=`<dt>Designed distance δ</dt><dd>${C.delta} = 2t + 1</dd><dt>True d<sub>min</sub></dt><dd>${dd}</dd><dt>Guaranteed detect</dt><dd>up to ${dm-1} errors</dd><dt>Guaranteed correct</dt><dd>up to ${tt} errors (decoder is configured for t = ${C.t})</dd><dt>Code rate</dt><dd>${C.k}/${C.n} = ${(C.k/C.n).toFixed(3)}</dd><dt>Overhead</dt><dd>${(C.deg/C.k*100).toFixed(0)}% extra bits</dd>`;
+ encode();}
+function encode(){
+ const s=$('#msg').value.trim();$('#msgerr').textContent='';
+ if(!/^[01]+$/.test(s)||s.length!=C.k){$('#msgerr').textContent=`Enter exactly ${C.k} bits (0 or 1).`;return}
+ const msg=s.split('').reverse().map(Number),e=BCH.encode(C,msg);cw=e.cw;errs=new Set();
+ const chk=BCH.syndromes(C,cw).every(x=>!x);
+ $('#encinfo').innerHTML=`<dt>m(x)</dt><dd class="mono">${pstr(msg)}</dd><dt>Remainder r(x)</dt><dd class="mono">${str(e.rem)} = ${pstr(e.rem)}</dd><dt>Codeword c(x)</dt><dd class="mono">${str(cw)}</dd><dt>Check</dt><dd>c(x) mod g(x) = 0 → ${chk?'<span class="chip ok">valid</span>':'<span class="chip bad">invalid</span>'}</dd>`;
+ $('#cwbits').innerHTML=cell(cw,false);draw();}
+const cell=(a,clk)=>{let h='';for(let j=C.n-1;j>=0;j--)h+=`<div class="bit ${j<C.deg?'p':'m'} ${clk&&errs.has(j)?'e':''} ${clk?'clk':''}" data-j="${j}"><i>${j}</i>${clk?a[j]:cw[j]}</div>`;return h}
+function draw(){
+ const r=cw.map((b,j)=>b^(errs.has(j)?1:0));$('#rxbits').innerHTML=cell(r,true);
+ const d=BCH.decode(C,r),orig=cw.every((b,j)=>b===d.cw[j]),n=errs.size;
+ $('#verdict').innerHTML=`<span class="chip ${d.ok&&orig?'ok':'bad'}">${n==0?'No errors injected':d.ok&&orig?`Corrected ${n} error${n>1?'s':''}`:d.ok?'Miscorrected to a different codeword':'Decoding failure detected'}</span> <span style="color:var(--mut)">${n} injected · t = ${C.t}</span>`;
+ $('#decinfo').innerHTML=`<dt>Received</dt><dd class="mono">${str(r)}</dd><dt>Syndromes S₁…S${2*C.t}</dt><dd class="mono">${d.S.map((s,i)=>`S${i+1}=${al(s)}`).join(' · ')}</dd><dt>Locator Λ(x)</dt><dd class="mono">${d.lam.map((c,i)=>c?`${al(c)}${i?'x'+(i>1?sup(i):''):''}`:'').filter(Boolean).join(' + ')}</dd><dt>Chien roots → positions</dt><dd class="mono">${d.pos.length?d.pos.join(', '):'none'} (power of x)</dd><dt>Recovered message</dt><dd class="mono">${str(d.cw.slice(C.deg))} ${orig?'✓ matches':''}</dd>`;}
+function inject(k){errs=new Set();while(errs.size<Math.min(k,C.n))errs.add(Math.floor(Math.random()*C.n));draw()}
+$('#rxbits').onclick=e=>{const b=e.target.closest('.bit');if(!b)return;const j=+b.dataset.j;errs.has(j)?errs.delete(j):errs.add(j);draw()};
+$('#m').onchange=construct;$('#t').onchange=construct;$('#enc').onclick=encode;$('#msg').onchange=encode;
+$('#rnd').onclick=()=>{$('#msg').value=str(rb(C.k));encode()};
+$('#e0').onclick=()=>{errs=new Set();draw()};$('#et').onclick=()=>inject(C.t);$('#et1').onclick=()=>inject(C.t+1);
+
+function tests(){
+ const rows=[],add=(a,b,ok)=>rows.push([a,b,ok]);
+ const C4=BCH.build(4,2),g='111010001';add('Deck example: generator g(x)','BCH(15,7,5) → '+str(C4.g),str(C4.g)==g&&C4.k==7);
+ const e=BCH.encode(C4,'1010101'.split('').reverse().map(Number)),cs=str(e.cw);add('Deck example: encoding','1010101 → '+cs,cs=='101010111100101');
+ const r=e.cw.slice();r[2]^=1;r[10]^=1;const d=BCH.decode(C4,r);add('Deck example: errors at positions 3 and 11 (from right)','decoder found '+d.pos.map(p=>p+1).join(', '),d.ok&&d.cw.join('')==e.cw.join(''));
+ add('Deck example: true minimum distance','exhaustive d_min = '+BCH.dmin(C4),BCH.dmin(C4)==5);
+ add('Practice answers','m=5 → n=31; k=21 of n=31 → 10 parity; δ=7 → t=3',BCH.build(5,1).n==31&&BCH.build(5,3).deg==15&&Math.floor(6/2)==3);
+ let tot=0,bad=0,cfg=0,dbad=0;
+ for(let m=3;m<=8;m++)for(const row of BCH.capability(m)){const X=BCH.build(m,row.t);cfg++;
+  const dm=BCH.dmin(X);if(dm!==null&&dm<X.delta)dbad++;
+  for(let q=0;q<20;q++){const e=BCH.encode(X,rb(X.k)),y=e.cw.slice(),p=new Set();while(p.size<row.t)p.add(Math.floor(Math.random()*X.n));p.forEach(j=>y[j]^=1);
+   const z=BCH.decode(X,y);tot++;if(!z.ok||z.cw.join('')!=e.cw.join(''))bad++;}}
+ add('Round-trip, exactly t errors',`${cfg} configurations (m = 3…8), ${tot} trials, ${bad} failures`,bad==0);
+ add('Designed distance holds',`d_min ≥ δ in every enumerable code (${dbad} violations)`,dbad==0);
+ let s=0,sb=0;for(let q=0;q<1500;q++){const m=3+Math.floor(Math.random()*4),cp=BCH.capability(m),row=cp[Math.floor(Math.random()*cp.length)],X=BCH.build(m,row.t),e=BCH.encode(X,rb(X.k)),y=e.cw.slice(),ne=Math.floor(Math.random()*(row.t+1)),p=new Set();while(p.size<ne)p.add(Math.floor(Math.random()*X.n));p.forEach(j=>y[j]^=1);const z=BCH.decode(X,y);s++;if(!z.ok||z.cw.join('')!=e.cw.join(''))sb++}
+ add('Stress test','1,500 random codes with 0…t random errors, '+sb+' failures',sb==0);
+ $('#tb').innerHTML=rows.map(([a,b,o])=>`<tr><td>${a}</td><td class="mono" style="font-size:12px">${b}</td><td><span class="chip ${o?'ok':'bad'}">${o?'PASS':'FAIL'}</span></td></tr>`).join('');
+ const p=rows.filter(r=>r[2]).length;$('#tsum').textContent=`${p} / ${rows.length} passed`;}
+$('#run').onclick=tests;
+const QA=[['Why do we need error-correcting codes?','Noise, interference or faulty memory flips bits. Redundant parity bits let the receiver detect and repair errors without retransmission, which matters on satellite links and in flash memory.'],
+['What do n, k and the rate mean?','n is the codeword length, k the information bits, n − k the parity bits. Rate R = k/n: higher rate means less overhead but usually less protection.'],
+['How is t related to the distance?','A code with minimum distance d detects d − 1 errors and corrects ⌊(d − 1)/2⌋. BCH is designed with δ = 2t + 1, so d ≥ δ and t errors are guaranteed correctable.'],
+['How is g(x) built?','Work in GF(2ᵐ) with a primitive α. Take the roots α¹ … α²ᵗ, group them into conjugacy classes (cyclotomic cosets), find each minimal polynomial over GF(2), and multiply the distinct ones. Duplicates are never multiplied twice.'],
+['Why is XOR used for addition?','Binary BCH arithmetic is modulo 2, so 1 + 1 = 0. Polynomial addition is XOR and division has no carries.'],
+['What is the syndrome?','Sᵢ = r(αⁱ) for i = 1…2t. All zero means r(x) is a codeword; non-zero values encode the error locations.'],
+['What do Berlekamp–Massey and Chien search do?','Berlekamp–Massey solves the key equation to give the error-locator polynomial Λ(x). Chien search tests every field element to find its roots, which are the error positions.'],
+['Does BCH correct more than t errors?','No guarantee. Beyond t the decoder either reports failure or miscorrects to a wrong codeword. Try “Inject t+1 errors” above.'],
+['Where is BCH used?','Flash memory, optical and data storage, satellite and space links, wireless FEC, and embedded firmware protection. QR codes use Reed–Solomon, a non-binary BCH-family code.'],
+['Burst errors?','Binary BCH targets random bit errors. Bursts call for interleaving or a symbol-based code such as Reed–Solomon.']];
+$('#qa').innerHTML=QA.map(([q,a])=>`<details><summary>${q}</summary><p style="color:var(--mut);margin:.5em 0 0">${a}</p></details>`).join('');
+construct();tests();
+</script></body></html>
